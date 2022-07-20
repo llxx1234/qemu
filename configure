@@ -591,7 +591,7 @@ fi
 x86_cpu_flags=""
 
 get_x86_cpu_flags(){
-    # check sse flag    
+    # check sse flag 
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
@@ -663,7 +663,7 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mssse3"
     fi
 
-    # check sse4.1 flag    
+    # check sse4.1 flag  
     cat > $TMPC << EOF
 #include <smmintrin.h>
 int main(int argc, char *argv[])
@@ -681,7 +681,7 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -msse4.1"
     fi
 
-    # check sse4.2 flag    
+    # check sse4.2 flag
     cat > $TMPC << EOF
 #include <nmmintrin.h>
 int main(int argc, char *argv[])
@@ -699,12 +699,12 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -msse4.2"
     fi
 
-    # check avx flag    
+    # check avx flag
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
 {
-    __m256 a; 
+    __m256 a;
     __m256 res= _mm256_ceil_ps(a);
     return 0;
 }
@@ -717,12 +717,12 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavx"
     fi
 
-    # check avx2 flag    
+    # check avx2 flag
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
 {
-    __m256i a; 
+    __m256i a;
     __m256i res= _mm256_abs_epi32(a);
     return 0;
 }
@@ -735,12 +735,12 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavx2"
     fi
 
-    # check AVX_VNNI flag    
+    # check AVX_VNNI flag
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
 {
-    __m128i a,b,c; 
+    __m128i a,b,c;
     __m128i res= _mm_dpbusd_epi32(a,b,c);
     return 0;
 }
@@ -753,12 +753,12 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavxvnni"
     fi
 
-    # check AVX512f flag    
+    # check AVX512f flag
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
 {
-    __m128d a; 
+    __m128d a;
     __m512d res= _mm512_broadcastsd_pd(a);
     return 0;
 }
@@ -771,12 +771,12 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavx512f"
     fi
 
-    # check AVX512bw flag    
+    # check AVX512bw flag
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
 {
-    __m512i a; 
+    __m512i a;
     __m512i res= _mm512_abs_epi8(a);
     return 0;
 }
@@ -789,12 +789,12 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavx512bw"
     fi
 
-    # check AVX512CD flag    
+    # check AVX512CD flag
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
 {
-    __m512i a; 
+    __m512i a;
     __mmask16 k;
     __m512i res= _mm512_maskz_lzcnt_epi32 (k, a);
     return 0;
@@ -808,12 +808,12 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavx512cd"
     fi
 
-    # check AVX512DQ flag    
+    # check AVX512DQ flag
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
 {
-    __mmask8 a,b; 
+    __mmask8 a,b;
     __mmask8 res=_kxor_mask8(a,b);
     return 0;
 }
@@ -826,13 +826,13 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavx512dq"
     fi
 
-    # check AVX512ER flag    
+    # check AVX512ER flag
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
 {
-    __m512d a; 
-    __m512d res=_mm512_rsqrt28_pd(a) ;
+    __m512d a;
+    __m512d res=_mm512_rsqrt28_pd(a);
     return 0;
 }
 EOF
@@ -844,13 +844,13 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavx512er"
     fi
 
-    # check AVX512IFMA52 flag    
+    # check AVX512IFMA52 flag
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
 {
-    __m512i a,b,c; 
-    __m512i res= _mm512_madd52lo_epu64 (a, b, c);	
+    __m512i a,b,c;
+    __m512i res= _mm512_madd52lo_epu64 (a, b, c);
     return 0;
 }
 EOF
@@ -862,7 +862,7 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavx512ifma"
     fi
 
-    # check AVX512PF flag    
+    # check AVX512PF flag
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
@@ -882,14 +882,14 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavx512pf"
     fi
 
-    # check AVX512VPOPCNTDQ flag    
+    # check AVX512VPOPCNTDQ flag
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
 {
     __m512i a;
-    __mmask8 k; 
-    __m512i res= _mm512_maskz_popcnt_epi64(k,a);	
+    __mmask8 k;
+    __m512i res= _mm512_maskz_popcnt_epi64(k,a);
     return 0;
 }
 EOF
@@ -901,13 +901,13 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavx512vpopcntdq"
     fi
 
-    # check AVX512_4VNNIW flag    
+    # check AVX512_4VNNIW flag   
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
 {
     __m512i a,b,c,d,e;
-    __m128 g; 
+    __m128 g;
     __m512i res= _mm512_4dpwssd_epi32 (a, b, c, d, e, &g);
     return 0;
 }
@@ -920,7 +920,7 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavx5124vnniw"
     fi
 
-    # check AVX512_BITALG flag    
+    # check AVX512_BITALG flag 
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
@@ -938,7 +938,7 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavx512bitalg"
     fi
 
-    # check AVX512_VBMI flag    
+    # check AVX512_VBMI flag
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
@@ -956,7 +956,7 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavx512vbmi"
     fi
 
-    # check AVX512_VBMI2 flag    
+    # check AVX512_VBMI2 flag
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
@@ -974,7 +974,7 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavx512vbmi2"
     fi
 
-    # check AVX512_VNNI flag    
+    # check AVX512_VNNI flag   
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])
@@ -993,7 +993,7 @@ EOF
         x86_cpu_flags="$x86_cpu_flags -mavx512vnni"
     fi
 
-    # check AVX512_FP16 flag    
+    # check AVX512_FP16 flag
     cat > $TMPC << EOF
 #include <immintrin.h>
 int main(int argc, char *argv[])

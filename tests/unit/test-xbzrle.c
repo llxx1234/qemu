@@ -38,7 +38,7 @@ static void test_uleb(void)
     g_assert(val == 0);
 }
 
-static float * test_encode_decode_zero(void)
+static float *test_encode_decode_zero(void)
 {
     uint8_t *buffer = g_malloc0(XBZRLE_PAGE_SIZE);
     uint8_t *compressed = g_malloc0(XBZRLE_PAGE_SIZE);
@@ -69,8 +69,8 @@ static float * test_encode_decode_zero(void)
     g_assert(dlen == 0);
 
     t_start512 = clock();
-    dlen512 = xbzrle_encode_buffer_512(buffer512, buffer512, XBZRLE_PAGE_SIZE, compressed512,
-                       XBZRLE_PAGE_SIZE);
+    dlen512 = xbzrle_encode_buffer_512(buffer512, buffer512, XBZRLE_PAGE_SIZE,
+                                       compressed512, XBZRLE_PAGE_SIZE);
     t_end512 = clock();
     float time_val512 = difftime(t_end512, t_start512);
     g_assert(dlen512 == 0);
@@ -98,11 +98,11 @@ static void test_encode_decode_zero_range(void)
         time_512 += res[1];
     }
     printf("Zero test:\n");
-    printf("Raw xbzrle_encode time is %f ms \n",time_raw);
-    printf("512 xbzrle_encode time is %f ms \n", time_512);
+    printf("Raw xbzrle_encode time is %f ms\n", time_raw);
+    printf("512 xbzrle_encode time is %f ms\n", time_512);
 }
 
-static float * test_encode_decode_unchanged(void)
+static float *test_encode_decode_unchanged(void)
 {
     uint8_t *compressed = g_malloc0(XBZRLE_PAGE_SIZE);
     uint8_t *test = g_malloc0(XBZRLE_PAGE_SIZE);
@@ -133,8 +133,8 @@ static float * test_encode_decode_unchanged(void)
     g_assert(dlen == 0);
 
     t_start512 = clock();
-    dlen512 = xbzrle_encode_buffer_512(test512, test512, XBZRLE_PAGE_SIZE, compressed512,
-                                XBZRLE_PAGE_SIZE);
+    dlen512 = xbzrle_encode_buffer_512(test512, test512, XBZRLE_PAGE_SIZE,
+                                       compressed512, XBZRLE_PAGE_SIZE);
     t_end512 = clock();
     float time_val512 = difftime(t_end512, t_start512);
     g_assert(dlen512 == 0);
@@ -162,11 +162,11 @@ static void test_encode_decode_unchanged_range(void)
         time_512 += res[1];
     }
     printf("Unchanged test:\n");
-    printf("Raw xbzrle_encode time is %f ms \n",time_raw);
-    printf("512 xbzrle_encode time is %f ms \n", time_512);
+    printf("Raw xbzrle_encode time is %f ms\n", time_raw);
+    printf("512 xbzrle_encode time is %f ms\n", time_512);
 }
 
-static float * test_encode_decode_1_byte(void)
+static float *test_encode_decode_1_byte(void)
 {
     uint8_t *buffer = g_malloc0(XBZRLE_PAGE_SIZE);
     uint8_t *test = g_malloc0(XBZRLE_PAGE_SIZE);
@@ -194,13 +194,14 @@ static float * test_encode_decode_1_byte(void)
     g_assert(memcmp(test, buffer, XBZRLE_PAGE_SIZE) == 0);
 
     t_start512 = clock();
-    dlen512 = xbzrle_encode_buffer(buffer512, test512, XBZRLE_PAGE_SIZE, compressed512,
-                       XBZRLE_PAGE_SIZE);
+    dlen512 = xbzrle_encode_buffer_512(buffer512, test512, XBZRLE_PAGE_SIZE,
+                                       compressed512, XBZRLE_PAGE_SIZE);
     t_end512 = clock();
     float time_val512 = difftime(t_end512, t_start512);
     g_assert(dlen512 == (uleb128_encode_small(&buf512[0], 4095) + 2));
 
-    rc512 = xbzrle_decode_buffer(compressed512, dlen512, buffer512, XBZRLE_PAGE_SIZE);
+    rc512 = xbzrle_decode_buffer(compressed512, dlen512, buffer512,
+                                 XBZRLE_PAGE_SIZE);
     g_assert(rc512 == XBZRLE_PAGE_SIZE);
     g_assert(memcmp(test512, buffer512, XBZRLE_PAGE_SIZE) == 0);
 
@@ -229,11 +230,11 @@ static void test_encode_decode_1_byte_range(void)
         time_512 += res[1];
     }
     printf("1 byte test:\n");
-    printf("Raw xbzrle_encode time is %f ms \n",time_raw);
-    printf("512 xbzrle_encode time is %f ms \n", time_512);
+    printf("Raw xbzrle_encode time is %f ms\n", time_raw);
+    printf("512 xbzrle_encode time is %f ms\n", time_512);
 }
 
-static float * test_encode_decode_overflow(void)
+static float *test_encode_decode_overflow(void)
 {
     uint8_t *compressed = g_malloc0(XBZRLE_PAGE_SIZE);
     uint8_t *test = g_malloc0(XBZRLE_PAGE_SIZE);
@@ -258,8 +259,8 @@ static float * test_encode_decode_overflow(void)
     g_assert(rc == -1);
 
     t_start512 = clock();
-    rc512 = xbzrle_encode_buffer_512(buffer512, test512, XBZRLE_PAGE_SIZE, compressed512,
-                              XBZRLE_PAGE_SIZE);
+    rc512 = xbzrle_encode_buffer_512(buffer512, test512, XBZRLE_PAGE_SIZE,
+                                     compressed512, XBZRLE_PAGE_SIZE);
     t_end512 = clock();
     float time_val512 = difftime(t_end512, t_start512);
     g_assert(rc512 == -1);
@@ -289,11 +290,11 @@ static void test_encode_decode_overflow_range(void)
         time_512 += res[1];
     }
     printf("Overflow test:\n");
-    printf("Raw xbzrle_encode time is %f ms \n",time_raw);
-    printf("512 xbzrle_encode time is %f ms \n", time_512);
+    printf("Raw xbzrle_encode time is %f ms\n", time_raw);
+    printf("512 xbzrle_encode time is %f ms\n", time_512);
 }
 
-static float * encode_decode_range(void)
+static float *encode_decode_range(void)
 {
     uint8_t *buffer = g_malloc0(XBZRLE_PAGE_SIZE);
     uint8_t *compressed = g_malloc(XBZRLE_PAGE_SIZE);
@@ -337,8 +338,8 @@ static float * encode_decode_range(void)
     g_assert(memcmp(test, buffer, XBZRLE_PAGE_SIZE) == 0);
 
     t_start512 = clock();
-    dlen512 = xbzrle_encode_buffer_512(test512, buffer512, XBZRLE_PAGE_SIZE, compressed512,
-                                XBZRLE_PAGE_SIZE);
+    dlen512 = xbzrle_encode_buffer_512(test512, buffer512, XBZRLE_PAGE_SIZE,
+                                       compressed512, XBZRLE_PAGE_SIZE);
     t_end512 = clock();
     float time_val512 = difftime(t_end512, t_start512);
     rc512 = xbzrle_decode_buffer(compressed512, dlen512, test512, XBZRLE_PAGE_SIZE);
@@ -370,11 +371,11 @@ static void test_encode_decode(void)
         time_512 += res[1];
     }
     printf("Encode decode test:\n");
-    printf("Raw xbzrle_encode time is %f ms \n",time_raw);
-    printf("512 xbzrle_encode time is %f ms \n", time_512);
+    printf("Raw xbzrle_encode time is %f ms\n", time_raw);
+    printf("512 xbzrle_encode time is %f ms\n", time_512);
 }
 
-static float * encode_decode_random(void)
+static float *encode_decode_random(void)
 {
     uint8_t *buffer = g_malloc0(XBZRLE_PAGE_SIZE);
     uint8_t *compressed = g_malloc(XBZRLE_PAGE_SIZE);
@@ -382,11 +383,11 @@ static float * encode_decode_random(void)
     uint8_t *buffer512 = g_malloc0(XBZRLE_PAGE_SIZE);
     uint8_t *compressed512 = g_malloc(XBZRLE_PAGE_SIZE);
     uint8_t *test512 = g_malloc0(XBZRLE_PAGE_SIZE);
-    int i = 0, rc = 0, rc512 = 0; 
+    int i = 0, rc = 0, rc512 = 0;
     int dlen = 0, dlen512 = 0;
 
     int diff_len = g_test_rand_int_range(0, XBZRLE_PAGE_SIZE - 1);
-    // store the index of diff
+    /* store the index of diff */
     int dirty_index[diff_len];
     for (int j = 0; j < diff_len; j++) {
         dirty_index[j] = g_test_rand_int_range(0, XBZRLE_PAGE_SIZE - 1);
@@ -408,8 +409,8 @@ static float * encode_decode_random(void)
     g_assert(rc < XBZRLE_PAGE_SIZE);
 
     t_start512 = clock();
-    dlen512 = xbzrle_encode_buffer_512(test512, buffer512, XBZRLE_PAGE_SIZE, compressed512,
-                                XBZRLE_PAGE_SIZE);
+    dlen512 = xbzrle_encode_buffer_512(test512, buffer512, XBZRLE_PAGE_SIZE,
+                                       compressed512, XBZRLE_PAGE_SIZE);
     t_end512 = clock();
     float time_val512 = difftime(t_end512, t_start512);
     rc512 = xbzrle_decode_buffer(compressed512, dlen512, test512, XBZRLE_PAGE_SIZE);
@@ -439,9 +440,9 @@ static void test_encode_decode_random(void)
         time_raw += res[0];
         time_512 += res[1];
     }
-    printf("Random test: \n");
-    printf("Raw xbzrle_encode time is %f ms \n",time_raw);
-    printf("512 xbzrle_encode time is %f ms \n", time_512);
+    printf("Random test:\n");
+    printf("Raw xbzrle_encode time is %f ms\n", time_raw);
+    printf("512 xbzrle_encode time is %f ms\n", time_512);
 }
 
 int main(int argc, char **argv)

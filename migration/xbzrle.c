@@ -175,7 +175,7 @@ int xbzrle_decode_buffer(uint8_t *src, int slen, uint8_t *dst, int dlen)
     return d;
 }
 
-#if defined(__x86_64__) && defined (__AVX512BW__)
+#if defined(__x86_64__) && defined(__AVX512BW__)
 #include <immintrin.h>
 #include <math.h>
 #define SET_ZERO512(r) r = _mm512_set1_epi32(0)
@@ -189,11 +189,14 @@ int xbzrle_encode_buffer_512(uint8_t *old_buf, uint8_t *new_buf, int slen,
     int res = slen % 64;
     bool never_same = true;
     while (count512s--) {
-        if (d+2 > dlen)
+        if (d + 2 > dlen) {
             return -1;
-        __m512i old_data = _mm512_mask_loadu_epi8(old_data, 0xffffffffffffffff, old_buf+i);
-        __m512i new_data = _mm512_mask_loadu_epi8(new_data, 0xffffffffffffffff, new_buf+i);
-        // in mask bit 1 for same, 0 for diff
+        }
+        __m512i old_data = _mm512_mask_loadu_epi8(old_data,
+                                                 0xffffffffffffffff, old_buf + i);
+        __m512i new_data = _mm512_mask_loadu_epi8(new_data,
+                                                 0xffffffffffffffff, new_buf + i);
+        /* in mask bit 1 for same, 0 for diff */
         __mmask64  comp = _mm512_cmpeq_epi8_mask(old_data, new_data);
 
         int bytesToCheck = 64;
@@ -202,9 +205,10 @@ int xbzrle_encode_buffer_512(uint8_t *old_buf, uint8_t *new_buf, int slen,
             if (is_same) {
                 if (nzrun_len) {
                     d += uleb128_encode_small(dst + d, nzrun_len);
-                    if (d + nzrun_len > dlen)
+                    if (d + nzrun_len > dlen) {
                         return -1;
-                    nzrun_start = new_buf+i-nzrun_len;
+                    }
+                    nzrun_start = new_buf + i - nzrun_len;
                     memcpy(dst + d, nzrun_start, nzrun_len);
                     d += nzrun_len;
                     nzrun_len = 0;
@@ -222,21 +226,23 @@ int xbzrle_encode_buffer_512(uint8_t *old_buf, uint8_t *new_buf, int slen,
                 comp >>= num;
                 i += num;
                 if (bytesToCheck) {
-                    // still has different data after same data
+                    /* still has different data after same data */
                     d += uleb128_encode_small(dst + d, zrun_len);
-                    zrun_len=0;
-                }
-                else {
+                    zrun_len = 0;
+                } else {
                     break;
                 }
             }
             if (never_same || zrun_len) {
-                // never_same only happend first block's first part of data in 512 group is diffrent
+                /*
+                 * never_same only acts if
+                 * data begins with diff in first count512s
+                 */
                 d += uleb128_encode_small(dst + d, zrun_len);
                 zrun_len = 0;
                 never_same = false;
             }
-            // has diff
+            /* has diff */
             if ((bytesToCheck == 64) && (comp == 0x0)) {
                 i += 64;
                 nzrun_len += 64;
@@ -249,12 +255,13 @@ int xbzrle_encode_buffer_512(uint8_t *old_buf, uint8_t *new_buf, int slen,
             comp >>= num;
             i += num;
             if (bytesToCheck) {
-                // mask like 111000
+                /* mask like 111000 */
                 d += uleb128_encode_small(dst + d, nzrun_len);
-                // overflow
-                if (d + nzrun_len > dlen)
+                /* overflow */
+                if (d + nzrun_len > dlen) {
                     return -1;
-                nzrun_start = new_buf+i-nzrun_len;
+                }
+                nzrun_start = new_buf + i - nzrun_len;
                 memcpy(dst + d, nzrun_start, nzrun_len);
                 d += nzrun_len;
                 nzrun_len = 0;
@@ -264,11 +271,11 @@ int xbzrle_encode_buffer_512(uint8_t *old_buf, uint8_t *new_buf, int slen,
     }
     if (res) {
         /* the number of data is less than 64 */
-        unsigned long long mask = pow(2,res);
+        unsigned long long mask = pow(2, res);
         mask -= 1;
         __m512i r = SET_ZERO512(r);
-        __m512i old_data = _mm512_mask_loadu_epi8(r, mask, old_buf+i);
-        __m512i new_data = _mm512_mask_loadu_epi8(r, mask, new_buf+i);
+        __m512i old_data = _mm512_mask_loadu_epi8(r, mask, old_buf + i);
+        __m512i new_data = _mm512_mask_loadu_epi8(r, mask, new_buf + i);
         __mmask64 comp = _mm512_cmpeq_epi8_mask(old_data, new_data);
 
         int bytesToCheck = res;
@@ -277,9 +284,10 @@ int xbzrle_encode_buffer_512(uint8_t *old_buf, uint8_t *new_buf, int slen,
             if (is_same) {
                 if (nzrun_len) {
                     d += uleb128_encode_small(dst + d, nzrun_len);
-                    if ( d + nzrun_len > dlen )
+                    if (d + nzrun_len > dlen) {
                         return -1;
-                    nzrun_start = new_buf+i-nzrun_len;
+                    }
+                    nzrun_start = new_buf + i - nzrun_len;
                     memcpy(dst + d, nzrun_start, nzrun_len);
                     d += nzrun_len;
                     nzrun_len = 0;
@@ -292,22 +300,20 @@ int xbzrle_encode_buffer_512(uint8_t *old_buf, uint8_t *new_buf, int slen,
                 comp >>= num;
                 i += num;
                 if (bytesToCheck) {
-                    // diff after same
+                    /* diff after same */
                     d += uleb128_encode_small(dst + d, zrun_len);
-                    zrun_len=0;
-                }
-                else {
+                    zrun_len = 0;
+                } else {
                     break;
                 }
             }
 
             if (never_same || zrun_len) {
-                // this only happend first block's first part of data in res is diffrent
                 d += uleb128_encode_small(dst + d, zrun_len);
                 zrun_len = 0;
                 never_same = false;
             }
-            // has diff
+            /* has diff */
             num = __builtin_ctzl(comp);
             num = (num < bytesToCheck) ? num : bytesToCheck;
             nzrun_len += num;
@@ -315,12 +321,12 @@ int xbzrle_encode_buffer_512(uint8_t *old_buf, uint8_t *new_buf, int slen,
             comp >>= num;
             i += num;
             if (bytesToCheck) {
-                // mask like 111000
                 d += uleb128_encode_small(dst + d, nzrun_len);
-                // overflow
-                if( d + nzrun_len > dlen )
+                /* overflow */
+                if (d + nzrun_len > dlen) {
                     return -1;
-                nzrun_start = new_buf+i-nzrun_len;
+                }
+                nzrun_start = new_buf + i - nzrun_len;
                 memcpy(dst + d, nzrun_start, nzrun_len);
                 d += nzrun_len;
                 nzrun_len = 0;
@@ -329,15 +335,16 @@ int xbzrle_encode_buffer_512(uint8_t *old_buf, uint8_t *new_buf, int slen,
         }
     }
 
-    if (zrun_len)
+    if (zrun_len) {
         return (zrun_len == slen) ? 0 : d;
-
+    }
     if (nzrun_len != 0) {
         d += uleb128_encode_small(dst + d, nzrun_len);
-        // overflow
-        if ( d + nzrun_len > dlen )
+        /* overflow */
+        if (d + nzrun_len > dlen) {
             return -1;
-        nzrun_start = new_buf+i-nzrun_len;
+        }
+        nzrun_start = new_buf + i - nzrun_len;
         memcpy(dst + d, nzrun_start, nzrun_len);
         d += nzrun_len;
     }

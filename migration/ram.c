@@ -747,7 +747,7 @@ static int save_xbzrle_page(RAMState *rs, uint8_t **current_data,
     memcpy(XBZRLE.current_buf, *current_data, TARGET_PAGE_SIZE);
 
     /* XBZRLE encoding (if there is no overflow) */
-    #if defined(__x86_64__) && defined (__AVX512BW__)
+    #if defined(__x86_64__) && defined(__AVX512BW__)
     encoded_len = xbzrle_encode_buffer_512(prev_cached_page, XBZRLE.current_buf,
                                        TARGET_PAGE_SIZE, XBZRLE.encoded_buf,
                                        TARGET_PAGE_SIZE);
