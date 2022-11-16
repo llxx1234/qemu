@@ -175,33 +175,46 @@ int xbzrle_decode_buffer(uint8_t *src, int slen, uint8_t *dst, int dlen)
     return d;
 }
 
-#if defined(__x86_64__) && defined(__AVX512BW__)
+#if defined(CONFIG_AVX512BW_OPT)
+#pragma GCC push_options
+#pragma GCC target("avx512bw")
 #include <immintrin.h>
-#include <math.h>
-#define SET_ZERO512(r) r = _mm512_set1_epi32(0)
-int xbzrle_encode_buffer_512(uint8_t *old_buf, uint8_t *new_buf, int slen,
+int xbzrle_encode_buffer_avx512(uint8_t *old_buf, uint8_t *new_buf, int slen,
                              uint8_t *dst, int dlen)
 {
     uint32_t zrun_len = 0, nzrun_len = 0;
     int d = 0, i = 0, num = 0;
     uint8_t *nzrun_start = NULL;
-    int count512s = (slen >> 6);
-    int res = slen % 64;
+    /* add 1 to include residual part in main loop */
+    uint32_t count512s = (slen >> 6) + 1;
+    /* countResidual is tail of data, i.e., countResidual = slen % 64 */
+    uint32_t count_residual = slen & 0b111111;
     bool never_same = true;
-    while (count512s--) {
+    uint64_t mask_residual = 1;
+    mask_residual <<= count_residual;
+    mask_residual -= 1;
+    __m512i r = _mm512_set1_epi32(0);
+
+    while (count512s) {
         if (d + 2 > dlen) {
             return -1;
         }
-        __m512i old_data = _mm512_mask_loadu_epi8(old_data,
-                                                 0xffffffffffffffff, old_buf + i);
-        __m512i new_data = _mm512_mask_loadu_epi8(new_data,
-                                                 0xffffffffffffffff, new_buf + i);
-        /* in mask bit 1 for same, 0 for diff */
-        __mmask64  comp = _mm512_cmpeq_epi8_mask(old_data, new_data);
 
-        int bytesToCheck = 64;
+        int bytes_to_check = 64;
+        uint64_t mask = 0xffffffffffffffff;
+        if (count512s == 1) {
+            bytes_to_check = count_residual;
+            mask = mask_residual;
+        }
+        __m512i old_data = _mm512_mask_loadu_epi8(r,
+                                                  mask, old_buf + i);
+        __m512i new_data = _mm512_mask_loadu_epi8(r,
+                                                  mask, new_buf + i);
+        uint64_t comp = _mm512_cmpeq_epi8_mask(old_data, new_data);
+        count512s--;
+
         bool is_same = (comp & 0x1);
-        while (bytesToCheck) {
+        while (bytes_to_check) {
             if (is_same) {
                 if (nzrun_len) {
                     d += uleb128_encode_small(dst + d, nzrun_len);
@@ -213,19 +226,20 @@ int xbzrle_encode_buffer_512(uint8_t *old_buf, uint8_t *new_buf, int slen,
                     d += nzrun_len;
                     nzrun_len = 0;
                 }
-                if (comp == 0xffffffffffffffff) {
+                /* 64 data at a time for speed */
+                if (count512s && (comp == 0xffffffffffffffff)) {
                     i += 64;
                     zrun_len += 64;
                     break;
                 }
                 never_same = false;
-                num = __builtin_ctzl(~comp);
-                num = (num < bytesToCheck) ? num : bytesToCheck;
+                num = __builtin_ctzll(~comp);
+                num = (num < bytes_to_check) ? num : bytes_to_check;
                 zrun_len += num;
-                bytesToCheck -= num;
+                bytes_to_check -= num;
                 comp >>= num;
                 i += num;
-                if (bytesToCheck) {
+                if (bytes_to_check) {
                     /* still has different data after same data */
                     d += uleb128_encode_small(dst + d, zrun_len);
                     zrun_len = 0;
@@ -242,19 +256,19 @@ int xbzrle_encode_buffer_512(uint8_t *old_buf, uint8_t *new_buf, int slen,
                 zrun_len = 0;
                 never_same = false;
             }
-            /* has diff */
-            if ((bytesToCheck == 64) && (comp == 0x0)) {
+            /* has diff, 64 data at a time for speed */
+            if ((bytes_to_check == 64) && (comp == 0x0)) {
                 i += 64;
                 nzrun_len += 64;
                 break;
             }
-            num = __builtin_ctzl(comp);
-            num = (num < bytesToCheck) ? num : bytesToCheck;
+            num = __builtin_ctzll(comp);
+            num = (num < bytes_to_check) ? num : bytes_to_check;
             nzrun_len += num;
-            bytesToCheck -= num;
+            bytes_to_check -= num;
             comp >>= num;
             i += num;
-            if (bytesToCheck) {
+            if (bytes_to_check) {
                 /* mask like 111000 */
                 d += uleb128_encode_small(dst + d, nzrun_len);
                 /* overflow */
@@ -269,75 +283,7 @@ int xbzrle_encode_buffer_512(uint8_t *old_buf, uint8_t *new_buf, int slen,
             }
         }
     }
-    if (res) {
-        /* the number of data is less than 64 */
-        unsigned long long mask = pow(2, res);
-        mask -= 1;
-        __m512i r = SET_ZERO512(r);
-        __m512i old_data = _mm512_mask_loadu_epi8(r, mask, old_buf + i);
-        __m512i new_data = _mm512_mask_loadu_epi8(r, mask, new_buf + i);
-        __mmask64 comp = _mm512_cmpeq_epi8_mask(old_data, new_data);
 
-        int bytesToCheck = res;
-        bool is_same = (comp & 0x1);
-        while (bytesToCheck) {
-            if (is_same) {
-                if (nzrun_len) {
-                    d += uleb128_encode_small(dst + d, nzrun_len);
-                    if (d + nzrun_len > dlen) {
-                        return -1;
-                    }
-                    nzrun_start = new_buf + i - nzrun_len;
-                    memcpy(dst + d, nzrun_start, nzrun_len);
-                    d += nzrun_len;
-                    nzrun_len = 0;
-                }
-                never_same = false;
-                num = __builtin_ctzl(~comp);
-                num = (num < bytesToCheck) ? num : bytesToCheck;
-                zrun_len += num;
-                bytesToCheck -= num;
-                comp >>= num;
-                i += num;
-                if (bytesToCheck) {
-                    /* diff after same */
-                    d += uleb128_encode_small(dst + d, zrun_len);
-                    zrun_len = 0;
-                } else {
-                    break;
-                }
-            }
-
-            if (never_same || zrun_len) {
-                d += uleb128_encode_small(dst + d, zrun_len);
-                zrun_len = 0;
-                never_same = false;
-            }
-            /* has diff */
-            num = __builtin_ctzl(comp);
-            num = (num < bytesToCheck) ? num : bytesToCheck;
-            nzrun_len += num;
-            bytesToCheck -= num;
-            comp >>= num;
-            i += num;
-            if (bytesToCheck) {
-                d += uleb128_encode_small(dst + d, nzrun_len);
-                /* overflow */
-                if (d + nzrun_len > dlen) {
-                    return -1;
-                }
-                nzrun_start = new_buf + i - nzrun_len;
-                memcpy(dst + d, nzrun_start, nzrun_len);
-                d += nzrun_len;
-                nzrun_len = 0;
-                is_same = true;
-            }
-        }
-    }
-
-    if (zrun_len) {
-        return (zrun_len == slen) ? 0 : d;
-    }
     if (nzrun_len != 0) {
         d += uleb128_encode_small(dst + d, nzrun_len);
         /* overflow */
@@ -350,4 +296,5 @@ int xbzrle_encode_buffer_512(uint8_t *old_buf, uint8_t *new_buf, int slen,
     }
     return d;
 }
+#pragma GCC pop_options
 #endif
